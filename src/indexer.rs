@@ -18,14 +18,14 @@ const DEX_PACKAGE_ID: &str = "0x1c2be4cfbf91fe8d71aedeb83cbe680475b70359bab87900
 /// using the `suix_queryEvents` method. Events are retrieved in batches of 100.
 /// 
 /// # Arguments
-/// * `_from_ts` - Start timestamp (inclusive) in milliseconds since epoch
-/// * `_to_ts` - End timestamp (exclusive) in milliseconds since epoch
+/// * `from_ts` - Start timestamp (inclusive) in milliseconds since epoch
+/// * `to_ts` - End timestamp (exclusive) in milliseconds since epoch
 /// 
 /// # Returns
 /// * `Result<Vec<serde_json::Value>>` - Vector of event JSON objects or error
 async fn query_sui_events(
-    _from_ts: i64,
-    _to_ts: i64,
+    from_ts: i64,
+    to_ts: i64,
 ) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
     let rpc_url = std::env::var("SUI_RPC_URL")
         .unwrap_or_else(|_| "https://fullnode.devnet.sui.io:443".to_string());
@@ -39,6 +39,7 @@ async fn query_sui_events(
     ];
     
     for event_type in event_types.iter() {
+        // Use timestamp-based filtering to avoid fetching duplicate events
         let request_body = serde_json::json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -47,7 +48,13 @@ async fn query_sui_events(
                 { "MoveEventType": event_type },
                 null,  // cursor (null for latest)
                 100,   // limit
-                false  // descending order
+                false, // descending order
+                {      // time range filter
+                    "TimeRange": {
+                        "start_time": from_ts,
+                        "end_time": to_ts
+                    }
+                }
             ]
         });
         
@@ -191,16 +198,24 @@ pub async fn run_indexer(conn_arc: Arc<Mutex<Connection>>) {
             .unwrap()
             .as_millis() as i64;
 
+        println!("Indexer polling: searching for events from {} to {}", last_ts, to_ts);
+
         // Query blockchain for events in the time range [last_ts, to_ts)
-        if let Ok(events) = query_sui_events(last_ts, to_ts).await {
-            if !events.is_empty() {
-                if let Ok(conn) = conn_arc.lock() {
-                    process_events(&conn, &events);
+        match query_sui_events(last_ts, to_ts).await {
+            Ok(events) => {
+                if !events.is_empty() {
+                    println!("Found {} new events, processing...", events.len());
+                    if let Ok(conn) = conn_arc.lock() {
+                        process_events(&conn, &events);
+                    }
+                    last_ts = to_ts;
+                } else {
+                    println!("No new events found in time range");
                 }
-                last_ts = to_ts;
             }
-        } else {
-            eprintln!("Warning: failed to query Sui events");
+            Err(e) => {
+                eprintln!("Warning: failed to query Sui events: {}", e);
+            }
         }
 
         // Wait before the next polling cycle

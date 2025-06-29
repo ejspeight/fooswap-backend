@@ -1,24 +1,23 @@
 # Fooswap Backend
 
-A Rust-based off-chain indexer and HTTP API for the Fooswap decentralized exchange (DEX) on the Sui Network.
+A Rust-based off-chain indexer and HTTP API for the Fooswap decentralised exchange (DEX) on the Sui Network.
 
 ## Overview
 
-This project provides a complete backend solution for indexing and serving DEX data from Sui blockchain events. It includes:
+This project provides a backend for indexing and serving DEX data from Sui blockchain events. It includes:
 
-- **Blockchain Indexer**: Continuously monitors Sui Move events for pool creation and swap transactions
+- **Blockchain Indexer**: Monitors Sui Move events for pool creation and swap transactions
 - **REST API**: HTTP endpoints for querying pool data, swap history, and price calculations
 - **SQLite Database**: Local storage for efficient data persistence and querying
-- **Production Ready**: Designed for deployment with proper error handling and logging
 
 ## Features
 
 - **Real-time Event Indexing**: Polls Sui RPC for `PoolCreatedEvent` and `SwapEvent` events
 - **Automatic Data Persistence**: Stores pool and swap data in SQLite with proper indexing
-- **RESTful API**: Comprehensive HTTP endpoints for DEX data access
-- **Price Calculation**: Built-in price computation using constant product formula
-- **Transaction Deduplication**: Prevents duplicate processing using transaction digests
-- **Health Monitoring**: Built-in health check endpoint for load balancers
+- **RESTful API**: HTTP endpoints for DEX data access
+- **Price Calculation**: Computes prices using the constant product formula
+- **Transaction Deduplication**: Avoids duplicate processing using transaction digests
+- **Health Check**: Simple endpoint to check if the service is running
 
 ## Quick Start
 
@@ -26,7 +25,7 @@ This project provides a complete backend solution for indexing and serving DEX d
 
 - Rust 1.70+ and Cargo
 - Sui CLI (for contract deployment)
-- Access to Sui RPC endpoint
+- Access to a Sui RPC endpoint
 
 ### Installation
 
@@ -36,12 +35,12 @@ git clone <repository-url>
 cd fooswap-backend
 ```
 
-2. Install dependencies:
+2. Build the project:
 ```bash
 cargo build
 ```
 
-3. Configure environment variables:
+3. Set your environment variables:
 ```bash
 # Sui RPC endpoint (defaults to devnet)
 export SUI_RPC_URL=https://fullnode.devnet.sui.io:443
@@ -65,7 +64,7 @@ The server will start on `http://127.0.0.1:3000`
 
 ### Updating Package ID
 
-When deploying to different networks or updating your contract, update the `DEX_PACKAGE_ID` constant in `src/indexer.rs`:
+If you deploy to a different network or update your contract, change the `DEX_PACKAGE_ID` constant in `src/indexer.rs`:
 
 ```rust
 const DEX_PACKAGE_ID: &str = "0xYOUR_NEW_PACKAGE_ID";
@@ -130,7 +129,7 @@ GET /api/price?pair=TOKENA/TOKENB
 ```
 
 **Parameters:**
-- `pair`: Token pair in format "TOKENA/TOKENB" (e.g., "USDC/SUI")
+- `pair`: Token pair in the format "TOKENA/TOKENB" (e.g. "USDC/SUI")
 
 **Response:**
 ```json
@@ -145,7 +144,7 @@ GET /api/price?pair=TOKENA/TOKENB
 ## Database Schema
 
 ### Pools Table
-Stores current state of all liquidity pools:
+Stores the current state of all liquidity pools:
 
 ```sql
 CREATE TABLE pools (
@@ -176,17 +175,17 @@ CREATE TABLE swaps (
 
 ### Core Components
 
-- **`src/main.rs`**: Application entry point, server initialization, and background task management
+- **`src/main.rs`**: Application entry point and server setup
 - **`src/indexer.rs`**: Blockchain event polling, parsing, and database persistence
 - **`src/routes.rs`**: HTTP API endpoint handlers and response formatting
-- **`src/db.rs`**: Database operations, schema management, and connection handling
+- **`src/db.rs`**: Database operations and schema management
 
 ### Data Flow
 
-1. **Indexer** polls Sui RPC every 5 seconds for new events
-2. **Event Processing** parses Move events and extracts relevant data
-3. **Database Storage** persists pool and swap data with proper indexing
-4. **API Server** serves HTTP requests with real-time data from SQLite
+1. The indexer polls Sui RPC every 5 seconds for new events
+2. Event processing extracts relevant data from Move events
+3. The database stores pool and swap data with proper indexing
+4. The API server serves HTTP requests with real-time data from SQLite
 
 ## Development
 
@@ -210,7 +209,7 @@ RUST_LOG=debug cargo run
 
 ### Database Inspection
 ```bash
-# Open SQLite database
+# Open the SQLite database
 sqlite3 fooswap.db
 
 # View tables
@@ -221,17 +220,9 @@ SELECT * FROM pools;
 SELECT * FROM swaps LIMIT 10;
 ```
 
-## Deployment
+## Docker
 
-### Production Considerations
-
-1. **RPC Endpoint**: Use a reliable Sui RPC provider for production
-2. **Database**: Consider using PostgreSQL for high-volume deployments
-3. **Monitoring**: Add metrics collection and alerting
-4. **Security**: Implement rate limiting and authentication
-5. **Scaling**: Consider horizontal scaling with load balancers
-
-### Docker Deployment
+You can use Docker to build and run the backend:
 
 ```dockerfile
 FROM rust:1.70 as builder
